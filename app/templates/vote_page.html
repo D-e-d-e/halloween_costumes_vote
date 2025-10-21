@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Vota per {{ costume.name }}{% endblock %}
+
+{% block content %}
+    <div class="center-text">
+        <h1>Vota per il Costume: "{{ costume.name }}"</h1>
+        <p>{{ costume.description }}</p>
+        
+        <form method="POST" action="{{ url_for('submit_vote', costume_id=costume.id) }}">
+            <input type="hidden" name="costume_id" value="{{ costume.id }}">
+            <button type="submit">Vota questo Costume!</button>
+        </form>
+    </div>
+{% endblock %}

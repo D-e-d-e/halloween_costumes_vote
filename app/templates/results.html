@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Risultati Votazioni{% endblock %}
+
+{% block content %}
+    <h1>Risultati delle Votazioni</h1>
+
+    {% if results %}
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Posizione</th>
+                    <th>Nome Costume</th>
+                    <th>Numero di Voti</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in results %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.vote_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Nessun voto registrato ancora!</p>
+    {% endif %}
+
+    <p style="margin-top: 20px;">
+        <a href="{{ url_for('index') }}">Torna alla gestione costumi</a>
+    </p>
+{% endblock %}

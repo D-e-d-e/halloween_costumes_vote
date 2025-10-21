@@ -1,0 +1,140 @@
+from flask import render_template, request, redirect, url_for, flash, make_response
+from app import app, db
+from app.models import Costume, Vote
+import qrcode
+from qrcode.image.styledpil import StyledPilImage
+from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
+import os
+import uuid
+
+# --- Funzione per generare QR code ---
+def generate_qr_code_image(costume_id, base_url):
+    # L'URL a cui il QR reindirizzerà quando scansionato
+    # Usiamo url_for per generare l'URL per la pagina di voto
+    vote_url = url_for('vote_page', costumeId=costume_id, _external=True)
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H, # Livello di correzione errori alto
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(vote_url)
+    qr.make(fit=True)
+
+    # Crea un'immagine con moduli arrotondati per un look più moderno
+    img = qr.make_image(image_factory=StyledPilImage, module_drawer=RoundedModuleDrawer())
+
+    # Percorso dove salvare l'immagine del QR code
+    filename = f"qr_code_{costume_id}.png"
+    filepath = os.path.join(app.root_path, 'static', 'qr_codes', filename)
+    
+    # Assicurati che la directory esista
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    img.save(filepath)
+    # Ritorna il percorso relativo che Flask può usare per servire il file statico
+    return os.path.join('qr_codes', filename) # Esempio: 'qr_codes/qr_code_xyz.png'
+
+# --- Routes per le pagine HTML (Frontend base) ---
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+
+        if not name:
+            flash('Il nome del costume è obbligatorio!', 'danger')
+            return redirect(url_for('index'))
+
+        new_costume = Costume(name=name, description=description)
+        db.session.add(new_costume)
+        db.session.commit() # Commit per avere l'ID
+
+        # Genera il QR code e salva il percorso
+        qr_code_path = generate_qr_code_image(new_costume.id, request.url_root)
+        new_costume.qr_code_path = qr_code_path
+        db.session.commit()
+
+        flash(f'Costume "{name}" aggiunto con successo e QR code generato!', 'success')
+        return redirect(url_for('index'))
+    
+    costumes = Costume.query.all()
+    # Preparare i dati per la visualizzazione dei QR code
+    costumes_with_qr_urls = []
+    for costume in costumes:
+        # url_for('static', filename=...) genera l'URL corretto per il file statico
+        qr_static_url = url_for('static', filename=costume.qr_code_path) if costume.qr_code_path else None
+        costumes_with_qr_urls.append({
+            'id': costume.id,
+            'name': costume.name,
+            'description': costume.description,
+            'qr_static_url': qr_static_url
+        })
+
+    return render_template('index.html', costumes=costumes_with_qr_urls)
+
+@app.route('/vote_page')
+def vote_page():
+    costume_id = request.args.get('costumeId')
+    if not costume_id:
+        flash('ID del costume mancante per la votazione.', 'danger')
+        return redirect(url_for('index')) # Reindirizza alla pagina principale
+
+    costume = Costume.query.get(costume_id)
+    if not costume:
+        flash('Costume non trovato.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Prepara la risposta per impostare il cookie
+    response = make_response(render_template('vote_page.html', costume=costume))
+
+    voter_identifier = request.cookies.get('voter_id')
+    if not voter_identifier:
+        # Se è la prima volta, genera un ID univoco e imposta il cookie
+        voter_identifier = str(uuid.uuid4())
+        # Imposta il cookie per 30 giorni
+        response.set_cookie('voter_id', voter_identifier, max_age=3600*24*30, httponly=True, samesite='Lax') 
+        # httponly=True per sicurezza, samesite='Lax' per compatibilità
+        
+    return response
+
+@app.route('/vote/<string:costume_id>', methods=['POST'])
+def submit_vote(costume_id):
+    voter_identifier = request.cookies.get('voter_id')
+
+    if not voter_identifier:
+        flash('Impossibile identificare il tuo voto. Assicurati che i cookie siano abilitati.', 'danger')
+        return redirect(url_for('vote_page', costumeId=costume_id))
+
+    costume = Costume.query.get(costume_id)
+    if not costume:
+        flash('Costume non trovato.', 'danger')
+        return redirect(url_for('index'))
+
+    # Controlla se il votante ha già votato per questo costume
+    existing_vote = Vote.query.filter_by(costume_id=costume_id, voter_identifier=voter_identifier).first()
+    if existing_vote:
+        flash('Hai già votato per questo costume!', 'warning')
+        return redirect(url_for('vote_page', costumeId=costume_id))
+
+    new_vote = Vote(costume_id=costume_id, voter_identifier=voter_identifier)
+    db.session.add(new_vote)
+    db.session.commit()
+
+    flash('Voto registrato con successo!', 'success')
+    return redirect(url_for('vote_page', costumeId=costume_id))
+
+@app.route('/results')
+def results():
+    costumes = Costume.query.all()
+    results_data = []
+    for costume in costumes:
+        results_data.append({
+            "name": costume.name,
+            "vote_count": len(costume.votes) # Conta i voti associati
+        })
+    # Ordina per numero di voti decrescente
+    results_data.sort(key=lambda x: x['vote_count'], reverse=True)
+    return render_template('results.html', results=results_data)

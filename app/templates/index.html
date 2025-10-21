@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Costumi{% endblock %}
+
+{% block content %}
+    <h1>Aggiungi Nuovo Costume</h1>
+    <form method="POST">
+        <label for="name">Nome Costume:</label>
+        <input type="text" id="name" name="name" required>
+        
+        <label for="description">Descrizione:</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+        
+        <button type="submit">Aggiungi Costume</button>
+    </form>
+
+    <h2>Costumi Esistenti e QR Codes</h2>
+    {% if costumes %}
+        <ul class="costume-list">
+            {% for costume in costumes %}
+                <li class="costume-item">
+                    {% if costume.qr_static_url %}
+                        <img src="{{ costume.qr_static_url }}" alt="QR Code per {{ costume.name }}">
+                    {% endif %}
+                    <div class="costume-details">
+                        <h3>{{ costume.name }}</h3>
+                        <p>{{ costume.description }}</p>
+                        <p>ID: {{ costume.id }}</p>
+                        {% if costume.qr_static_url %}
+                            <p>Scansiona per votare, o usa il link diretto (per test): <br>
+                            <a href="{{ url_for('vote_page', costumeId=costume.id) }}">{{ url_for('vote_page', costumeId=costume.id, _external=True) }}</a></p>
+                            <a href="{{ costume.qr_static_url }}" download="qr_code_{{ costume.id }}.png" class="button">Scarica QR Code</a>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Nessun costume aggiunto ancora. Aggiungine uno sopra!</p>
+    {% endif %}
+{% endblock %}
