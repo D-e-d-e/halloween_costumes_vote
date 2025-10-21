@@ -1,20 +1,32 @@
 from app import app, db
+from app.models import User
 import os
 
-# Creazione delle directory se non esistono
-with app.app_context():
-    # Crea il database e le tabelle se non esistono
-    db.create_all()
+# Funzione per inizializzare il database e creare l'utente admin
+def init_db_and_admin():
+    with app.app_context():
+        db.create_all() # Crea tutte le tabelle definite nei modelli
 
-    # Crea la directory per i QR code se non esiste
-    qr_dir = os.path.join(app.root_path, 'static', 'qr_codes')
-    os.makedirs(qr_dir, exist_ok=True)
-    
-    # Crea la directory per i CSS se non esiste
-    css_dir = os.path.join(app.root_path, 'static', 'css')
-    os.makedirs(css_dir, exist_ok=True)
+        # Crea un utente admin predefinito se non esiste
+        if not User.query.filter_by(username='admin').first():
+            admin_user = User(username='admin')
+            admin_user.set_password('Dedee__001') 
+            db.session.commit()
+            print("Utente 'admin' creato con password 'adminpassword'. CAMBIALA!")
+        else:
+            print("Utente 'admin' esiste già.")
 
-# Questo blocco verrà eseguito solo quando run.py è chiamato direttamente,
-# non quando Gunicorn avvia l'app.
+        # Assicurati che le directory per i file statici esistano
+        qr_dir = os.path.join(app.root_path, 'static', 'qr_codes')
+        os.makedirs(qr_dir, exist_ok=True)
+        
+        css_dir = os.path.join(app.root_path, 'static', 'css')
+        os.makedirs(css_dir, exist_ok=True)
+        print("Directory statiche verificate/create.")
+
+# Questo blocco avvia l'app in locale.
+# Render userà il Procfile per avviare Gunicorn, che non passa per questo blocco.
 if __name__ == '__main__':
+    # Esegui l'inizializzazione del DB solo all'avvio locale diretto
+    init_db_and_admin()
     app.run(debug=True, host='0.0.0.0')
