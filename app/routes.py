@@ -75,7 +75,7 @@ def index():
 
     return render_template('index.html', costumes=costumes_with_qr_urls)
 
-@app.route('/vote_page')
+@app.route('/vote_page', methods=['GET', 'POST'])
 def vote_page():
     costume_id = request.args.get('costumeId')
     if not costume_id:
