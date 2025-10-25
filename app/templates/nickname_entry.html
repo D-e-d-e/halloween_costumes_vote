@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+  <h2>Inserisci il tuo nickname</h2>
+  <p>Questo nome sarà visibile assieme al tuo voto.</p>
+  <form method="POST">
+    <input type="text" name="nickname" placeholder="Il tuo nickname" class="form-control mt-3" required>
+    <button type="submit" class="btn btn-primary mt-3">Continua</button>
+  </form>
+</div>
+{% endblock %}

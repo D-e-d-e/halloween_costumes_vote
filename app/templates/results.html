@@ -12,6 +12,7 @@
                     <th>Posizione</th>
                     <th>Nome Costume</th>
                     <th>Numero di Voti</th>
+                    <th>Votato da</th>
                 </tr>
             </thead>
             <tbody>
@@ -20,6 +21,11 @@
                     <td>{{ loop.index }}</td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.vote_count }}</td>
+                    <td>
+                        {% for nick in item.voters %}
+                            <div>{{ nick }}</div>
+                        {% endfor %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -16,7 +16,7 @@ class Costume(db.Model):
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     costume_id = db.Column(db.String(36), db.ForeignKey('costume.id'), nullable=False)
-    voter_identifier = db.Column(db.String(255), nullable=False) # ID univoco per il votante (dal cookie)
+    voter_identifier = db.Column(db.String(100), db.ForeignKey('voter.identifier'), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     def __repr__(self):
@@ -37,3 +37,10 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+class Voter(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    identifier = db.Column(db.String(100), unique=True, nullable=False)  # il cookie
+    nickname = db.Column(db.String(50), nullable=False)
+
+    votes = db.relationship('Vote', backref='voter', lazy=True)

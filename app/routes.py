@@ -1,6 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash, make_response, session
 from app import app, db
-from app.models import Costume, Vote
+from app.models import Costume, Vote, Voter
 import qrcode
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
@@ -91,13 +91,30 @@ def vote_page():
     response = make_response(render_template('vote_page.html', costume=costume))
 
     voter_identifier = request.cookies.get('voter_id')
-    if not voter_identifier:
-        # Se è la prima volta, genera un ID univoco e imposta il cookie
-        voter_identifier = str(uuid.uuid4())
-        # Imposta il cookie per 30 giorni
-        response.set_cookie('voter_id', voter_identifier, max_age=3600*24*30, httponly=True, samesite='Lax') 
-        # httponly=True per sicurezza, samesite='Lax' per compatibilità
-        
+        # Se il votante non ha ancora un cookie o non esiste nel DB
+    if not voter_identifier or not Voter.query.filter_by(identifier=voter_identifier).first():
+        if request.method == 'POST':
+            nickname = request.form.get('nickname')
+            if not nickname:
+                flash('Devi inserire un nickname per votare!', 'warning')
+                return render_template('nickname_entry.html', costume=costume)
+
+            # genera un ID univoco e salva nel DB
+            voter_identifier = str(uuid.uuid4())
+            new_voter = Voter(identifier=voter_identifier, nickname=nickname)
+            db.session.add(new_voter)
+            db.session.commit()
+
+            # imposta cookie
+            response = make_response(redirect(url_for('vote_page', costumeId=costume_id)))
+            response.set_cookie('voter_id', voter_identifier, max_age=3600*24*30, httponly=True, samesite='Lax')
+            return response
+
+        # Se GET -> mostra il form per il nickname
+        return render_template('nickname_entry.html', costume=costume)
+
+    # Se già registrato, mostra la pagina di voto
+    response = make_response(render_template('vote_page.html', costume=costume))
     return response
 
 @app.route('/vote/<string:costume_id>', methods=['POST'])
@@ -138,9 +155,15 @@ def results():
         costumes = Costume.query.all()
         results_data = []
         for costume in costumes:
+            votes = Vote.query.filter_by(costume_id=costume.id).all()
+            vote_details = []
+            for vote in votes:
+                voter = Voter.query.filter_by(identifier=vote.voter_identifier).first()
+                vote_details.append(voter.nickname if voter else "Anonimo")
             results_data.append({
                 "name": costume.name,
-                "vote_count": len(costume.votes)
+                "vote_count": len(votes),
+                "voters": vote_details
             })
         results_data.sort(key=lambda x: x['vote_count'], reverse=True)
         return render_template('results.html', results=results_data)
@@ -159,4 +182,3 @@ def results():
     # Se è una richiesta GET e non ha il permesso, mostra il form per il PIN
     return render_template('results_pin_entry.html')
 
-# ... (le tue altre rotte: login, logout, index, vote_page, submit_vote) ...
