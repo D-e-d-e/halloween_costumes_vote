@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Accedi alla Classifica{% endblock %}
+
+{% block content %}
+    <div class="center-text">
+        <h1>Accedi alla Classifica dei Costumi</h1>
+        <p>Per visualizzare i risultati, inserisci il PIN:</p>
+        <form method="POST">
+            <label for="pin">PIN:</label>
+            <input type="password" id="pin" name="pin" required maxlength="4" pattern="[0-9]{4}"><br><br>
+            
+            <button type="submit">Mostra Classifica</button>
+        </form>
+    </div>
+{% endblock %}

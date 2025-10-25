@@ -126,15 +126,38 @@ def submit_vote(costume_id):
     flash('Voto registrato con successo!', 'success')
     return redirect(url_for('vote_page', costumeId=costume_id))
 
-@app.route('/results')
+
+# Rimuovi @login_required da qui!
+@app.route('/results', methods=['GET', 'POST'])
 def results():
-    costumes = Costume.query.all()
-    results_data = []
-    for costume in costumes:
-        results_data.append({
-            "name": costume.name,
-            "vote_count": len(costume.votes) # Conta i voti associati
-        })
-    # Ordina per numero di voti decrescente
-    results_data.sort(key=lambda x: x['vote_count'], reverse=True)
-    return render_template('results.html', results=results_data)
+    # Questo è il PIN definito nel tuo .env (o config.py)
+    CORRECT_PIN = os.getenv("RESULTS_PIN", "0000") # Usa un default se non trovato
+
+    # Controlla se il PIN è già nella sessione (significa che è stato inserito correttamente)
+    if 'results_access_granted' in session and session['results_access_granted']:
+        # L'utente ha già inserito il PIN, mostra i risultati
+        costumes = Costume.query.all()
+        results_data = []
+        for costume in costumes:
+            results_data.append({
+                "name": costume.name,
+                "vote_count": len(costume.votes)
+            })
+        results_data.sort(key=lambda x: x['vote_count'], reverse=True)
+        return render_template('results.html', results=results_data)
+    
+    # Se non ha il permesso, mostra il form per il PIN
+    if request.method == 'POST':
+        entered_pin = request.form.get('pin')
+        if entered_pin == CORRECT_PIN:
+            session['results_access_granted'] = True # Concedi l'accesso per la sessione
+            flash('PIN corretto! Accesso alla classifica concesso.', 'success')
+            return redirect(url_for('results')) # Reindirizza alla stessa pagina per mostrare i risultati
+        else:
+            flash('PIN errato. Riprova.', 'danger')
+            return render_template('results_pin_entry.html') # Ritorna al form se il PIN è sbagliato
+    
+    # Se è una richiesta GET e non ha il permesso, mostra il form per il PIN
+    return render_template('results_pin_entry.html')
+
+# ... (le tue altre rotte: login, logout, index, vote_page, submit_vote) ...
