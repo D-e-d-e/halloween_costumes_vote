@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, make_response
+from flask import render_template, request, redirect, url_for, flash, make_response, session
 from app import app, db
 from app.models import Costume, Vote
 import qrcode
