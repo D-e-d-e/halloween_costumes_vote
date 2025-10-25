@@ -127,7 +127,6 @@ def submit_vote(costume_id):
     return redirect(url_for('vote_page', costumeId=costume_id))
 
 
-# Rimuovi @login_required da qui!
 @app.route('/results', methods=['GET', 'POST'])
 def results():
     # Questo è il PIN definito nel tuo .env (o config.py)

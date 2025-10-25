@@ -15,7 +15,7 @@
                 <a href="{{ url_for('results') }}">Risultati</a> {# Questo punta alla pagina protetta dal PIN #}
                 <a href="{{ url_for('logout') }}">Logout ({{ session.username }})</a>
             {% else %}
-                <a href="{{ url_for('login') }}">Login Admin</a>
+                <!-- <a href="{{ url_for('login') }}">Login Admin</a> -->
                 <a href="{{ url_for('results') }}">Risultati (PIN richiesto)</a> {# Aggiungi un link visibile a tutti per i risultati #}
             {% endif %}
         </nav>
