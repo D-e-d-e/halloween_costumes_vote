@@ -181,23 +181,3 @@ def results():
     
     # Se è una richiesta GET e non ha il permesso, mostra il form per il PIN
     return render_template('results_pin_entry.html')
-
-@app.route('/reset_db/<string:key>')
-def reset_db(key):
-    from flask import abort
-    SECRET_KEY = "dede121"
-    if key != SECRET_KEY:
-        abort(403)
-    
-    from app import db
-    from app.models import Costume, Vote
-    try:
-        from app.models import Voter
-        db.session.query(Voter).delete()
-    except:
-        pass
-    db.session.query(Vote).delete()
-    db.session.query(Costume).delete()
-    db.session.commit()
-
-    return "✅ Database resettato!"
