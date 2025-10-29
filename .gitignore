@@ -1,0 +1,10 @@
+# Database locali
+instance/
+*.db
+
+# Virtual environment
+venv/
+.env
+
+# File temporanei/privati
+reset_remote_db.py
